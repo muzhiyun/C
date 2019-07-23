@@ -1,0 +1,23 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+N	2048.c	7;"	d	file:
+addNum	2048.c	/^int addNum(int num)$/;"	f
+array	2048.c	/^int array[4][4]={0};  \/\/chai fen$/;"	v
+checkFull	2048.c	/^int checkFull()			\/\/检测到2048 直接祝贺退出$/;"	f
+checkKey	2048.c	/^void checkKey()$/;"	f
+exitGame	2048.c	/^void exitGame()$/;"	f
+forRand	2048.c	/^int forRand(void)$/;"	f
+handle	2048.c	/^void handle(int num)$/;"	f
+hightmoveArray	2048.c	/^void hightmoveArray(int head,int end,int flag)		\/*	head->end 	flag	方向	*\/$/;"	f
+main	2048.c	/^int main()$/;"	f
+new	2048.c	/^struct termios old,new;  \/\/chai fen$/;"	v	typeref:struct:
+old	2048.c	/^struct termios old,new;  \/\/chai fen$/;"	v	typeref:struct:termios
+printf2048	2048.c	/^void printf2048() \/\/show_box$/;"	f
+printfLogo	2048.c	/^void printfLogo()$/;"	f
+startGame	2048.c	/^void startGame ()$/;"	f
+term	2048.c	/^void term()$/;"	f
+wightmoveArray	2048.c	/^void wightmoveArray(int head,int end,int flag)		\/*	head->end 	flag	方向	*\/$/;"	f
