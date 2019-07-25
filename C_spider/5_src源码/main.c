@@ -203,7 +203,7 @@ int recvGet(int sockfd)     //作用 ：接受返回内容 并切割提取json�
     if(strp != NULL)
     {
         puts("存在\\r\\n");
-        puts(offset);
+        //puts(offset);
         strcpy(recvtemp,offset);
         strp = strtok(offset,"\r\n");
         strcpy(Gjson,strp);
@@ -279,7 +279,7 @@ int recvGet(int sockfd)     //作用 ：接受返回内容 并切割提取json�
     {
         
        puts("准备提取子json");
-        puts(Gjson);
+        //puts(Gjson);
         cJSON* cjson = cJSON_Parse(Gjson);
 
         //获取数组对象
@@ -371,7 +371,7 @@ int recvGet(int sockfd)     //作用 ：接受返回内容 并切割提取json�
             chinPrintf(city_name->valuestring,9);
             chinPrintf(city_weather->valuestring,9);
             chinPrintf(city_wind->valuestring,9);
-            chinPrintf(city_winp->valuestring,9);
+            chinPrintf(city_winp->valuestring,12);
             chinPrintf(city_temp_high->valuestring,9);
             chinPrintf(city_temp_low->valuestring,9);
             //printf(" 长度:%d ",strlen(city_weather->valuestring));
@@ -396,7 +396,7 @@ int askNow()
     recvGet(sockfd);
     //puts(Gjsonchild);
     //puts("");
-    printf("今日：%s %s\n%s的天气 %s \n当前温度 %s   今日最高温度 %s 今日最低温度 %s \n风向 %s 风力 %s",recvPrintf(Gjsonchild,"days"),recvPrintf(Gjsonchild,"week"),recvPrintf(Gjsonchild,"citynm"),recvPrintf(Gjsonchild,"weather"),recvPrintf(Gjsonchild,"temperature_curr"),recvPrintf(Gjsonchild,"temp_high"),recvPrintf(Gjsonchild,"temp_low"),recvPrintf(Gjsonchild,"wind"),recvPrintf(Gjsonchild,"winp"));
+    printf("今日：%s %s\n%s的天气 %s \n当前温度 %s 湿度 %s 今日最高温度 %s 今日最低温度 %s \n风向 %s 风力 %s",recvPrintf(Gjsonchild,"days"),recvPrintf(Gjsonchild,"week"),recvPrintf(Gjsonchild,"citynm"),recvPrintf(Gjsonchild,"weather"),recvPrintf(Gjsonchild,"temperature_curr"),recvPrintf(Gjsonchild,"humidity"),recvPrintf(Gjsonchild,"temp_high"),recvPrintf(Gjsonchild,"temp_low"),recvPrintf(Gjsonchild,"wind"),recvPrintf(Gjsonchild,"winp"));
     close(sockfd);
 }
 
