@@ -1,15 +1,15 @@
-CXX = gcc
-CXXFLAGS = -Wall -Werror -Wextra -pedantic -std=c++17 -g -fsanitize=address
-LDFLAGS =  -lm
+cc = gcc
+prom = spider
+deps = $(shell find ./ -maxdepth 1 -name '*.h'|sed 's%.*/%%')
+src = $(shell find ./ -maxdepth 1 -name '*.c'|sed 's%.*/%%')
+obj = $(src:%.c=%.o)
+lib = -lm -lsqlite3
 
+$(prom):$(obj)
+	$(cc) -o $(prom) $(obj) $(lib)
 
-OBJ = main.c cJSON.c
-EXEC = spider
-
-all: $(EXEC)
-
-$(EXEC): $(OBJ)
-	$(CXX) $(OBJ) -o $@ $(LBLIBS) $(LDFLAGS)
+%.o:%.c $(deps)
+	$(cc) -c $< -o $@ $(lib)
 
 clean:
-	rm -rf $(EXEC)
+	rm -rf $(obj) $(prom)

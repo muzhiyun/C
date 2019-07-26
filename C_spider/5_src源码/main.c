@@ -11,6 +11,7 @@
 #include <netinet/ip.h>
 #include <arpa/inet.h>
 #include <termios.h>
+#include <sqlite3.h>
 #include "cJSON.h"
 
 
@@ -22,6 +23,7 @@
 
 struct termios old,new;
 
+int flag ;
 char Gcity[20]={0};
 char Gdata[20]={0};
 char Gfunction[20]={0};
@@ -29,6 +31,7 @@ char Grecv_buf[MAXLEN]={0};
 char Gjson[MAXLEN]={0};
 char Gjsonchild[MAXLEN]={0};
 char Gvalue[MAXLEN]={0};
+
 
 void offEcho()
 {
@@ -40,6 +43,101 @@ void offEcho()
 	tcsetattr(0,TCSANOW,&new);
 }
 
+
+int connectDB(char* days,char* citynm,char* weather,char* wind,char* winp,char* temp_high,char* temp_low)
+{
+    sqlite3 *db;
+    char sql_cmd[256];
+    char *errMsg;
+    sprintf(sql_cmd,"insert into futureWeather values (\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\");",days,citynm,weather,wind,winp,temp_high,temp_low);
+    //printf("sql:%s\n",sql_cmd);
+    
+     int ret = sqlite3_open("data.db",&db);
+    if(ret)
+    {
+        fprintf(stderr,"Error at sqlite3, msg: %s\n",sqlite3_errmsg(db));
+        sqlite3_close(db);
+        return -1;
+    }
+    else
+    {
+        ret = sqlite3_exec(db,sql_cmd,NULL,NULL,&errMsg);
+
+    }
+    if(ret)
+    {
+        fprintf(stderr,"Error at sqlite_exec, msg:%s\n",errMsg);
+        sqlite3_free(errMsg);
+        sqlite3_close(db);
+        return -1;
+    }
+    else
+    {
+        sqlite3_close(db);
+    }
+
+}
+
+int callback(void* arg,int col,char** result ,char** title)
+{
+    int i = 0 ;
+     if(0 == flag)
+    {
+        for(i = 0 ;i<col;i++)
+        {
+            printf("\n%s\t",title[i]);
+        }
+        printf("\n");
+        flag=1;
+    }
+    for(i = 0 ;i<col;i++)
+    {
+        printf("%s\t",result[i]);
+    }
+    printf("\n");
+    return 0;
+}
+
+int findDB()
+{
+    sqlite3 *db;
+    int rc = sqlite3_open("data.db",&db);
+    if(rc)
+    {
+        fprintf(stderr,"Error at sqlite3_open, msg:%s\n",sqlite3_errmsg(db));
+        sqlite3_close(db);
+        return -1;
+    }
+    system("clear");
+    tcsetattr(0,TCSANOW,&old);	//打开回显 restore_key;
+    puts("请输入查询日期并回车\n");
+    char *errMsg;
+    char msg[20];
+    scanf("%s",msg);
+    getchar();
+    offEcho();
+    char sql_cmd[512];
+     int exist_flag =0;
+    sprintf(sql_cmd,"select * from futureWeather where days='%s';",msg);
+    //printf("%s\n",sql_cmd);
+    rc = sqlite3_exec(db,sql_cmd,callback,0,&errMsg);
+    if(rc)
+    {
+        fprintf(stderr,"Error at sqlite3_exec, msg:%s\n",errMsg);
+        sqlite3_free(errMsg);
+        sqlite3_close(db);
+        return -1;
+    }
+    else
+    {
+        sqlite3_close(db);
+        return 0;
+    }
+    
+}
+
+
+
 int menuPrintf()
 {
     system("clear");
@@ -48,7 +146,8 @@ int menuPrintf()
 	printf("|2.查看当前环境信息   |\n");
 	printf("|3.查看历史环境信息   |\n");
 	printf("|4.查看未来环境信息   |\n");
-	printf("|5.退出               |\n");
+    printf("|5.查询本地数据库     |\n");
+	printf("|6.退出               |\n");
 	printf("+---------------------+\n");
 
 	return 0;
@@ -348,7 +447,10 @@ int recvGet(int sockfd)     //作用 ：接受返回内容 并切割提取json�
         printf("数组对象个数：%d\n",array_size);
         #endif
         int i = 0;
-        
+
+        puts("请选择是否需要将数据写入数据库 y键写入 其他键不写入\n");
+        char word = getchar();
+
         char *p  = NULL;
         printf ("\n    日期            城市名              天气              风向              风力              最高温度          最低温度\n");
         printf ("---------------------------------------------------------------------------------------------------------------------\n");
@@ -376,6 +478,13 @@ int recvGet(int sockfd)     //作用 ：接受返回内容 并切割提取json�
             chinPrintf(city_temp_low->valuestring,9);
             //printf(" 长度:%d ",strlen(city_weather->valuestring));
             puts("");
+
+           
+
+            if(word=='y')
+            {
+                connectDB(city_days->valuestring,city_name->valuestring,city_weather->valuestring,city_wind->valuestring,city_winp->valuestring,city_temp_high->valuestring,city_temp_low->valuestring);
+            }
  
         }
         cJSON_Delete(cjson);
@@ -485,8 +594,11 @@ int checkKey()
                     askFuture();
                     return 4;							
                 case '5':				
-                    beforeExit();		
+                    findDB();	
                     return 5;	
+                case '6':				
+                    beforeExit();		
+                    return 6;	
 
             }
         }
@@ -499,6 +611,7 @@ int checkKey()
 
 int main(int argc, char const *argv[])
 {
+    
     
     strcpy(Gcity,"xian");
     offEcho();
