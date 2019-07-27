@@ -26,6 +26,6 @@ CREATE TABLE "futureWeather" (
 "winp"  char,
 "temp_high"  cahr,
 "temp_low"  char,
-PRIMARY KEY ("days")
+PRIMARY KEY ("days" ASC, "citynm")
 );
 
