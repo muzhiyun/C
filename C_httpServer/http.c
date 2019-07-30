@@ -133,14 +133,16 @@ int geturl_getdata(int sockfd,char* buf,struct HTTP *head,struct MSG *msg)
             }
             *p = '\0';
             strcpy((*(head)).parameter,p+1);
-            if(0 == strcmp(buftmp,"/"))
-                strcpy(buftmp,"/index.html");
+            p = buftmp;
+            if(*(p+strlen(buftmp)-1) == '/')
+                strcat(buftmp,"index.html");
             strcpy((*(head)).url,buftmp);
         }
         else                        //GET方式 无data
         {
-           if(0 == strcmp(buftmp,"/"))
-                strcpy(buftmp,"/index.html");
+            p = buftmp;
+           if(*(p+strlen(buftmp)-1) == '/')
+                strcat(buftmp,"index.html");
            strcpy((*(head)).url,buftmp);  
         }
 
@@ -197,8 +199,24 @@ int cgiError(int sockfd,struct MSG *msg)
 int Isfileexist(struct HTTP *head)
 {
     char fullPath[512]=".";
-    strcat(fullPath,(*head).url);
-    return access(fullPath,0)+1;  //access文件存在返回0 不存在返回-1   改为存在返回1  不存在返回0
+    strcat(fullPath,(*head).url);   //2019-01-30更新 增加文件夹 文件判断
+                                    //access文件存在返回0 不存在返回-1  
+                                    //但无法判断是文件还是文件夹 当存在文件夹folder
+                                    //访问http://url/folder 会误导性以为访问名为folder的文件 
+
+    if(access(fullPath,0) == 0)     //该项目存在 再判断是文件还是文件夹
+    {
+        puts("判断 存在");
+        struct stat buftmp;
+        int rettmp = lstat(fullPath,&buftmp);
+        mode_t tmp = buftmp.st_mode;
+        if(!S_ISDIR(tmp))	        //非目录 则返回1
+        {
+            puts("不是文件夹");
+            return 1;
+        }
+    }
+    return 0;  //不存在 或存在但为文件夹 则返回0
 }
 
 //计算文件长度赋值msg结构体函数
@@ -243,7 +261,7 @@ int fileType(struct HTTP *head,struct MSG *msg)
     }
      else if(strcmp(temp,"js")==0)
     {
-        strcpy((*msg).ContentTypeinfo,"application/javascript;charset=utf-8\r\n");
+        strcpy((*msg).ContentTypeinfo,"Content-Type: application/javascript;charset=utf-8\r\n");
     }
      else if(strcmp(temp,"css")==0)
     {
@@ -301,48 +319,8 @@ int send_data(int sockfd,struct MSG *msg,struct HTTP *head)
     return 0;
 }
 
-int cgihandle2(int sockfd,struct MSG *msg,struct HTTP *head)
-{
-    char fullPath[512]=".";
-    strcat(fullPath,(*head).url);
-    char *buf[] = {"ps", "ajx", NULL}; 
-    execv(fullPath,buf);
-}
 
-int get_line(int sock, char *buf, int size)
-{
- int i = 0;
- char c = '\0';
- int n;
 
- while ((i < size - 1) && (c != '\n'))
- {
-  //recv()包含于<sys/socket.h>,参读《TLPI》P1259, 
-  //读一个字节的数据存放在 c 中
-  n = recv(sock, &c, 1, 0);
-  /* DEBUG printf("%02X\n", c); */
-  if (n > 0)
-  {
-   if (c == '\r')
-   {
-    //
-    n = recv(sock, &c, 1, MSG_PEEK);
-    /* DEBUG printf("%02X\n", c); */
-    if ((n > 0) && (c == '\n'))
-     recv(sock, &c, 1, 0);
-    else
-     c = '\n';
-   }
-   buf[i] = c;
-   i++;
-  }
-  else
-   c = '\n';
- }
- buf[i] = '\0';
-
- return(i);
-}
 
 
 void cgihandle(int client,struct MSG *msg,struct HTTP *head)
@@ -352,10 +330,16 @@ void cgihandle(int client,struct MSG *msg,struct HTTP *head)
  strcpy(method,((*head).method));
 
  char path[64];
- char fullPath[512]=".";
+ char fullPath[512]={0};
+ getcwd(fullPath,sizeof(fullPath));
+  //strcat(fullPath,"/cgi-bin");
  strcat(fullPath,(*head).url);
-
+//puts(fullPath);
  strcpy(path,fullPath);
+ puts(path);
+ puts(((*head).url)+1);
+
+
 
  char query_string[64];
  strcpy(query_string,((*head).parameter));
@@ -370,42 +354,10 @@ void cgihandle(int client,struct MSG *msg,struct HTTP *head)
  int numchars = 1;
  int content_length = -1;
  
- //往 buf 中填东西以保证能进入下面的 while
- buf[0] = 'A'; buf[1] = '\0';
- //如果是 http 请求是 GET 方法的话读取并忽略请求剩下的内容
- if (strcasecmp(method, "GET") == 0)
-  while ((numchars > 0) && strcmp("\n", buf))  /* read & discard headers */
-   numchars = get_line(client, buf, sizeof(buf));
- else    /* POST */
- {
-  //只有 POST 方法才继续读内容
-  numchars = get_line(client, buf, sizeof(buf));
-  //这个循环的目的是读出指示 body 长度大小的参数，并记录 body 的长度大小。其余的 header 里面的参数一律忽略
-  //注意这里只读完 header 的内容，body 的内容没有读
-  while ((numchars > 0) && strcmp("\n", buf))
-  {
-   buf[15] = '\0';
-   if (strcasecmp(buf, "Content-Length:") == 0)
-    content_length = atoi(&(buf[16])); //记录 body 的长度大小
-   numchars = get_line(client, buf, sizeof(buf));
-  }
-  
-  //如果 http 请求的 header 没有指示 body 长度大小的参数，则报错返回
-  if (content_length == -1) {
-  char temp[512]={0};
-    strcpy((*msg).msg,"<p>错误：请求方式暂未实现</p>");
-    strcpy((*msg).statinfo,"HTTP/1.0 500 Internal Server Error\r\n");
-    strcpy((*msg).ContentTypeinfo,"Content-type: text/html\r\n");
-    (*msg).Length = strlen((*msg).msg);
-    sprintf((*msg).Lengthinfo,"Content-Length: %lu\r\n\r\n",(*msg).Length);
-    puts("错误：请求方式暂未实现");
-    send_msg(client,msg);
-   return;
-  }
- }
+ 
 
- sprintf(buf, "HTTP/1.0 200 OK\r\n");
- send(client, buf, strlen(buf), 0);
+ //sprintf(buf, "HTTP/1.0 200 OK\r\n");
+ //send(client, buf, strlen(buf), 0);
 
  //下面这里创建两个管道，用于两个进程间通信
  if (pipe(cgi_output) < 0) {
@@ -434,7 +386,7 @@ void cgihandle(int client,struct MSG *msg,struct HTTP *head)
   //将子进程的输出由标准输出重定向到 cgi_ouput 的管道写端上
   dup2(cgi_output[1], 1);
   //将子进程的输出由标准输入重定向到 cgi_ouput 的管道读端上
-  dup2(cgi_input[0], 0);
+  //dup2(cgi_input[0], 0);
   //关闭 cgi_ouput 管道的读端与cgi_input 管道的写端
   close(cgi_output[0]);
   close(cgi_input[1]);
@@ -445,10 +397,12 @@ void cgihandle(int client,struct MSG *msg,struct HTTP *head)
   //将这个环境变量加进子进程的运行环境中
   putenv(meth_env);
   
+ 
   //根据http 请求的不同方法，构造并存储不同的环境变量
   if (strcasecmp(method, "GET") == 0) {
-      puts("构建环境变量");
+     
    sprintf(query_env, "QUERY_STRING=%s", query_string);
+  // puts(query_env);
    putenv(query_env);
   }
   else {   /* POST */
@@ -458,21 +412,22 @@ void cgihandle(int client,struct MSG *msg,struct HTTP *head)
   
   //execl()包含于<unistd.h>中，参读《TLPI》P567
   //最后将子进程替换成另一个进程并执行 cgi 脚本
-  execl("/mnt/e/嵌入式开发/普特/20190728/5_源码/cgi-bin/login", "login", NULL);
+  
+  execl(path, ((*head).url)+1, NULL);
   exit(0);
   
  } else {    /* parent */
   //父进程则关闭了 cgi_output管道的写端和 cgi_input 管道的读端
   close(cgi_output[1]);
   close(cgi_input[0]);
-  /* 
+  
   //如果是 POST 方法的话就继续读 body 的内容，并写到 cgi_input 管道里让子进程去读
   if (strcasecmp(method, "POST") == 0)
    for (i = 0; i < content_length; i++) {
     recv(client, &c, 1, 0);
     write(cgi_input[1], &c, 1);
    }
-   */
+   
   //然后从 cgi_output 管道中读子进程的输出，并发送到客户端去
   while (read(cgi_output[0], &c, 1) > 0)
    send(client, &c, 1, 0);
@@ -482,13 +437,14 @@ void cgihandle(int client,struct MSG *msg,struct HTTP *head)
   close(cgi_input[1]);
   //等待子进程的退出
   waitpid(pid, &status, 0);
+  close(client);
  }
 }
 
 
-void *handle(void *arg)
+void handle(int sockfd)
 {
-    pthread_detach(pthread_self()); //设置分离属性
+    //pthread_detach(pthread_self()); //设置分离属性
     
     while(1)
     {
@@ -500,7 +456,7 @@ void *handle(void *arg)
         memset(&msg,0,sizeof(msg));
         //struct DATA data;
         char buf[TCPMAXLEN]={0};
-        int sockfd = *(int *)arg;
+        //int sockfd = *(int *)arg;
         int ret = recv(sockfd,buf,1024,0);
         if(ret <= 0)
         {
@@ -520,19 +476,34 @@ void *handle(void *arg)
             printf("data : %s\n",head.parameter);
             puts("----------------------------------------------");
 
-            if(strstr(head.url,".")==NULL)
+            if(strstr(head.url,"/cgi-bin/")!=NULL)
             {
                 puts("请求了CGI");
+                if(Isfileexist((struct HTTP *)&head) == true)   // 判断文件是否存在 
+                {
+                    puts("存在");
+                     cgihandle(sockfd,(struct MSG *)&msg,(struct HTTP *)&head);
+                   
+                    
 
-                // char temp[512]={0};
-                // strcpy(msg.msg,"<p>错误：请求方式暂未实现</p>");
-                // strcpy(msg.statinfo,"HTTP/1.0 500 Internal Server Error\r\n");
-                // strcpy(msg.ContentTypeinfo,"Content-type: text/html;charset=utf-8\r\n");
-                // msg.Length = strlen(msg.msg);
-                // sprintf(msg.Lengthinfo,"Content-Length: %lu\r\n\r\n",msg.Length);
-                // puts("错误：请求方式暂未实现");
-                // send_msg(sockfd,(struct MSG *)&msg);
-                cgihandle(sockfd,(struct MSG *)&msg,(struct HTTP *)&head);
+                }
+                else            //不存在返回404页面
+                {
+                    puts("不存在");  
+                    strcpy(msg.statinfo,"HTTP/1.1 404 Not Found\r\n"); 
+                    strcpy(head.url,"/404.html");   // 改为发送404.html
+                     fileLength((struct HTTP *)&head,(struct MSG *)&msg);    //填充长度
+                    fileType((struct HTTP *)&head,(struct MSG *)&msg);         //填充文件类型
+
+                    puts("----------------------------------------------");
+                    printf("stat  %s",msg.statinfo);
+                    printf("type  %s",msg.ContentTypeinfo);
+                    printf("len   %s",msg.Lengthinfo);
+
+                    send_head(sockfd,(struct MSG *)&msg,(struct HTTP *)&head);      //发送头部
+                    send_data(sockfd,(struct MSG *)&msg,(struct HTTP *)&head);      //发送主体
+                    
+                }
                 puts("CGI完成");
 
             }
@@ -577,12 +548,31 @@ int main()
 {
     pthread_t tid[100];
     int sockfd = socket_init();
-    int conn[100]={0};
+    int conn = 0;
     int i = 0;
     while(1)
     {
-        conn[i] = accept(sockfd,NULL,NULL);
-        pthread_create(&tid[i++],NULL,handle,&conn[i]);
+        conn = accept(sockfd,NULL,NULL);
+        pid_t pid = fork();
+        //pthread_create(&tid[i++],NULL,handle,&conn[i]);
+        if(pid>0)
+		{
+			close(conn);
+		}
+        if(0 == pid)
+		{
+			close(sockfd);
+			while(1)
+			{
+                handle(conn);
+			}
+
+		}
+        if(pid<0)
+		{
+            perror("fork");
+            exit(1);
+		}
         if(i>100)
             break;
 
