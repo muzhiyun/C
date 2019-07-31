@@ -106,44 +106,57 @@ int getmethod(char* buf,struct HTTP *head)
 }
 
 //将请求的url和data分割出来
+//Username=admin&Password=root
+//
 int geturl_getdata(int sockfd,char* buf,struct HTTP *head,struct MSG *msg)
 {
+    
+
     char buftmp[TCPMAXLEN]={0};
-    strcpy(buftmp,buf);
-    if(0 == strcmp((*(head)).method,"GET"))
+    char buftmp2[TCPMAXLEN]={0};
+    strcpy(buftmp,buf);             //完整报文复制一份 eg (GET /index.html?id=1 HTTP/1.1 ......)
+    puts("准备分割url和data");
+    puts(buftmp);
+    if(0 == strcmp((*(head)).method,"GET"))    //如果是GET 按GET方式提取url 和 data
     {
         char *p = NULL;
-        p = strstr(buftmp," ");
-        strcpy(buftmp,p+1);
+        p = strstr(buftmp," ");         //指针偏移到mothod之后 准备开始复制
+        memcpy(buftmp2,p+1,strlen(p+1));             // 复制 从mothod之后 url开始处全部复制到buftmp  eg (/index.html?id=1 HTTP/1.1 ...)
+        puts(buftmp2);
 
-        p = buftmp;
+        p = buftmp2;     //指针偏移到最开始 即url
         
-        while(*p != ' ')
+        while(*p != ' ')    //在url结束时填'\0'丢弃之后的         //eg (index.html?id=1'\0')
         {
             p++;
         }
         *p = '\0';
 
-        if(strstr(buftmp,"?"))      //GET方式 有data
+        puts(buftmp2);
+        if(strstr(buftmp2,"?"))      //判断url部分有无？  有则有data  eg (index.html?id=1)含有？  则带有数据
         {
-            p = buftmp;
+            p = buftmp2;
             while(*p != '?')
             {
                 p++;
             }
-            *p = '\0';
-            strcpy((*(head)).parameter,p+1);
-            p = buftmp;
-            if(*(p+strlen(buftmp)-1) == '/')
-                strcat(buftmp,"index.html");
-            strcpy((*(head)).url,buftmp);
+            *p = '\0';      //eg (index.html?id=1 中？替换为'\0'  p指针目前处于这个位置 正好是index 和id=1的分界处 目前buftmp中数据为index.html'\0'id=1'\0')
+            strcpy((*(head)).parameter,p+1);    //把p+1之后的内容 即 id=1 复制进  代表所有参数
+            puts((*(head)).parameter);
+
+            p = buftmp2;
+            if(*(p+strlen(buftmp2)-1) == '/')       //如果真正url最后一个是 "/"   即访问是一个文件夹 则补全html
+                strcat(buftmp2,"index.html");
+             puts(buftmp2);
+            strcpy((*(head)).url,buftmp2);       //因为buftmp中数据为index.html'\0'id=1'\0'   存在一个'\0' 则copy出来的url为'index.html'
         }
         else                        //GET方式 无data
         {
-            p = buftmp;
-           if(*(p+strlen(buftmp)-1) == '/')
-                strcat(buftmp,"index.html");
-           strcpy((*(head)).url,buftmp);  
+            puts(buftmp2);
+            p = buftmp2;
+           if(*(p+strlen(buftmp2)-1) == '/')
+                strcat(buftmp2,"index.html");
+           strcpy((*(head)).url,buftmp2);  
         }
 
     }
@@ -316,10 +329,9 @@ int send_data(int sockfd,struct MSG *msg,struct HTTP *head)
         send(sockfd,buf,ret,0);
 
     }
+    close(sockfd);
     return 0;
 }
-
-
 
 
 
@@ -543,6 +555,7 @@ void handle(int sockfd)
     }
     pthread_exit(NULL);
 }
+
 
 int main()
 {

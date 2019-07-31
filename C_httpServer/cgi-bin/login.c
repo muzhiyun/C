@@ -76,6 +76,7 @@ int  main()
 
     if(0 == exist_flag)
     {
+        printf("输入账号：%s，输入密码：%s\n",user,passwd);
         printf("登录失败，请检查账号或密码......\n");
         printf("<script type=\"text/javascript\"> setTimeout(\"window.location.href='../login.html'\",2000);</script>");
     }
