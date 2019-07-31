@@ -341,7 +341,7 @@ void cgihandle(int client,struct MSG *msg,struct HTTP *head)
  char method[64];
  strcpy(method,((*head).method));
 
- char path[64];
+ char path[1024];
  char fullPath[512]={0};
  getcwd(fullPath,sizeof(fullPath));
   //strcat(fullPath,"/cgi-bin");
