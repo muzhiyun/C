@@ -1,5 +1,6 @@
 #include"mediaServer.h"
 #include "public.h"
+#include "doub_list_for_fileList.h"
 
 //char fileName[30][100];
 
@@ -9,6 +10,8 @@ int loadMediaFile(char *dirName)
 	DIR *dp=NULL;
 	//struct stat buf;
 	struct dirent* dirp;
+	
+	
 	int ret =0;
 	//puts(dirName);
 	dp=opendir(dirName);
@@ -19,6 +22,46 @@ int loadMediaFile(char *dirName)
 	}
 	closedir(dp);
 	mediaFileListLen=sizeof(fileName)/sizeof(fileName[0]);
+	return 0;	
+	
+}
+
+
+int loadMediaFiletoList(char *dirName,LinkList *list)
+{
+	int i=0;
+	DIR *dp=NULL;
+	//struct stat buf;
+	struct dirent* dirp;
+	
+	
+	int ret =0;
+	//puts(dirName);
+	dp=opendir(dirName);
+	DATATYPE data;
+	int j=0;
+	while((dirp=readdir(dp))!=NULL)
+	{
+		if(dirp->d_name[0]!='.')
+		{
+			data.id = j;
+			strcpy(data.path,dirName);
+			strcat(data.path,"/");
+			strcat(data.path,dirp->d_name);
+			strcpy(data.name,dirp->d_name);
+			insertTailNode(list,&data);
+			//strcpy(fileName[i++],dirp->d_name);
+			j++;
+		}
+		
+	}
+	closedir(dp);
+	//mediaFileListLen=sizeof(fileName)/sizeof(fileName[0]);
+	showList(list,0);
+	
+	mediaFileListLen= list->clen;
+	printf("%d\n",mediaFileListLen);
+	//exit(0);
 	return 0;	
 	
 }

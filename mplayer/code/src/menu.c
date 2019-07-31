@@ -1,6 +1,7 @@
 #include"menu.h"
 #include"mediaServer.h"
 #include "public.h"
+#include "doub_list_for_fileList.h"
 
 char funcList[10][30]={
 		"查看媒体文件",
@@ -28,7 +29,7 @@ int mediaFileListFocus=0;
 int menuLevel=1;
 
 int fileNameStart=0;
-int fileNameEnd=10;
+int fileNameEnd=2;
 
 int funcListStart=0;
 int funcListEnd=10;
@@ -70,6 +71,48 @@ void printfMediaFileList()
 	printf("\n  上/下键选择 回车键进入 q键退出 \n");
 }
 
+void printfMediaFileListList(LinkList *list)
+{
+	system("clear");
+	printf("+---------------------------------+\n");
+	printf("|          文件列表               |\n");
+	printf("+---------------------------------+\n");
+	 int i=0;                            
+	 LinkNode *temp = list->head;   
+
+	 while(temp->data.id==fileNameStart-1)			//使list的起始位置和Start保持同步
+	 {
+		 	temp=temp->next;
+	 }
+
+        for(i=fileNameStart;i<fileNameEnd;i++) 
+        {       
+			if(mediaFileListFocus==i)
+				{
+					printf("|\033[30;43m%2d.%s\033[0m\n",i+1,temp->data.path);		//判断预打印这个是不是焦点
+					temp =temp->next; 
+				}
+			else
+				{
+					printf("|%2d.%s\n",i+1,temp->data.path);
+					temp =temp->next; 
+				}
+			  
+		
+		}
+	printf("+---------------------------------+\n");
+	// temp = list->head;   
+	// printf("%d:%s\n",temp->data.id,temp->data.path);
+	// temp =temp->next; 
+	// printf("%d:%s\n",temp->data.id,temp->data.path);
+	// temp =temp->next; 
+	// printf("%d:%s\n",temp->data.id,temp->data.path);
+	// temp =temp->next; 
+	// printf("%d:%s\n",temp->data.id,temp->data.path);
+	//showList(list,0);
+	printf("\n  上/下键选择 回车键进入 q键退出 \n");
+}
+
 /* 屏蔽回显*/ 
 void term()
 {	
@@ -89,8 +132,9 @@ void term()
  *  Description:  启动初始化
  * =====================================================================================
  */
-void startMplayer ()
+void startMplayer (LinkList *list)
 {
+	fileNameEnd=mediaFileListLen-1;
 	term();				//关闭回显
 	printfFuncList();			//打印一级菜单
 	//checkKey();		//检测按键
@@ -100,7 +144,8 @@ void startMplayer ()
 	if(menuLevel==1)
 		printfFuncList();
 	if(menuLevel==2)
-		printfMediaFileList();
+		//printfMediaFileList();  //普通数组方式
+		printfMediaFileListList(list);  //链表方式
 	}
 }		
 /* -----  end of function startMplayer  ----- */
@@ -113,7 +158,7 @@ void reflash(int num)
 			funcListFocus+=1;
 		else if(mediaFileListFocus<fileNameEnd-1&&menuLevel==2)		//未超默认显示范围 二级
 			mediaFileListFocus+=1;
-		if(funcListFocus==funcListEnd-1&&funcListEnd<funcListLen&&menuLevel==1)	//超默认显示范围 但未超出全部范围 一级
+		else if(funcListFocus==funcListEnd-1&&funcListEnd<funcListLen&&menuLevel==1)	//超默认显示范围 但未超出全部范围 一级
 		{
 			funcListStart+=1;
 			funcListEnd+=1;
@@ -133,7 +178,7 @@ void reflash(int num)
  		 	funcListFocus-=1;
 		 else if(mediaFileListFocus>fileNameStart&&menuLevel==2)
 			mediaFileListFocus-=1;
-		 if(funcListFocus==funcListStart&&funcListStart>0&&menuLevel==1) //超默认显示范围 但未超出全部范围 一级 
+		 else if(funcListFocus==funcListStart&&funcListStart>0&&menuLevel==1) //超默认显示范围 但未超出全部范围 一级 
 		 {
 
 		 	funcListStart-=1;           

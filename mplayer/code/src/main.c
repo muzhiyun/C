@@ -1,11 +1,13 @@
 #include"public.h"
 #include"menu.h"
 #include"mediaServer.h"
+#include "doub_list_for_fileList.h"
 
 char fileName[50][100];
 int mediaFileListLen;
 int gMplayerStat=0;
 char mediaFilePath[30];
+
 
 void getMediaFilePath()			//根据用户名 拼接出默认媒体路径
 {
@@ -22,10 +24,12 @@ void getMediaFilePath()			//根据用户名 拼接出默认媒体路径
 
 int main(int argv,const char *argc[])
 {
+	LinkList *list = createList();
 	getMediaFilePath();
-	loadMediaFile(mediaFilePath);
+	//loadMediaFile(mediaFilePath);
+	 loadMediaFiletoList(mediaFilePath,list);
 	//printfMediaFileList();
 	//printfFuncList();
-	startMplayer();
+	startMplayer(list);
 return 0;
 }
