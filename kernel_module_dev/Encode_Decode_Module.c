@@ -1,5 +1,30 @@
 #include "Encode_Decode_Module.h"
 
+
+int coder_major;//= MAJOR(devno);
+int coder_minor;
+
+static int type = ENCODE ;
+dev_t devno ;
+
+static struct class* coder_class = NULL;
+static struct device* coder_device = NULL;
+
+#define FUNC_POINT_TSET
+
+#ifdef FUNC_POINT_TSET
+struct func_t {
+    void (*init)(void);
+    void (*invoke)(int data);
+    int  (*set)(int level);
+    int  (*get)(void);
+    void (*deinit)(void);
+};
+
+struct func_t func; 
+EXPORT_SYMBOL(func);
+#endif
+
 //可以使用异或　Base64 SHA1等加密解密算法　为做测试　仅简单＋１
 int encode_handle(void)
 {
@@ -90,6 +115,23 @@ long coder_ioctl(struct file *filp,unsigned int cmd,unsigned long arg)
     case DECODE:
         type = DECODE;
         break;
+#ifdef FUNC_POINT_TSET
+    case 3:
+        func.init();
+        break;
+    case 4:
+        func.set(2);
+        break;
+    case 5:
+        printk(KERN_INFO "case 5 func get=%d",func.get());
+        break;
+    case 6:
+        func.invoke(3);
+        break;
+    case 7:
+        func.deinit();
+        break;
+#endif
     default:
         return -EINVAL;
     }
@@ -161,7 +203,7 @@ static void __exit coder_exit(void)
 
     dev_t devno = MKDEV(coder_major, coder_minor);
 
-    printk(KERN_ALERT "Destroy hello device./n");
+    printk(KERN_NOTICE "Destroy hello device./n");
 
     if(coder_class) {
     device_destroy(coder_class, devno);

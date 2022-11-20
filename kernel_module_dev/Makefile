@@ -1,4 +1,5 @@
 obj-m += Encode_Decode_Module.o
+obj-m += func.o
 
 bulid:Encode_Decode_Module Application
 

@@ -37,5 +37,22 @@ int main(void)
     read(fd,buf,512);
     printf("DECODE read Succeed! %s\n",buf);
 
+    ioctl(fd,3);
+    printf("DECODE Write 3!\n");
+    ioctl(fd,5);
+    printf("DECODE Write get!\n");
+    ioctl(fd,4);
+    printf("DECODE Write set!\n");
+    ioctl(fd,5);
+    printf("DECODE Write get!\n");
+    ioctl(fd,6);
+    printf("DECODE Write 6!\n");
+    ioctl(fd,5);
+    printf("DECODE Write get!\n");
+    ioctl(fd,7);
+    printf("DECODE Write 7!\n");
+    ioctl(fd,8);
+    printf("DECODE Write 8!\n");
+
     
 }
